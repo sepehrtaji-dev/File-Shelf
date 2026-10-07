@@ -5,9 +5,9 @@ WINDRES = windres
 TARGET  = build/shelf.exe
 
 C_SRCS   = src/main.c src/shelf_window.c src/shelf_items.c \
-           src/drop_in.c src/drag_out.c src/clipboard.c \
+           src/drop_in.c src/clipboard.c \
            src/util.c src/glass.c
-CXX_SRCS = src/ui_paint.cpp
+CXX_SRCS = src/ui_paint.cpp src/drag_out.cpp
 RC_SRC   = res/shelf.rc
 
 C_OBJS   = $(C_SRCS:src/%.c=build/%.o)

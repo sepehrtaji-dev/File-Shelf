@@ -7,8 +7,8 @@ extern "C" {
 
 void ui_init(void);
 void ui_shutdown(void);
+void ui_set_hover(int hover_idx, int close_hover_idx, int hide_hover);
 void ui_paint(HWND hwnd);
-void ui_paint_background(HDC hdc, const RECT* rc);
 
 #ifdef __cplusplus
 }

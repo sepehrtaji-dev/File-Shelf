@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "shelf_items.h"
 #include "util.h"
 #include <shlwapi.h>
@@ -7,7 +8,6 @@
 #include <string.h>
 
 #define MAX_ITEMS 256
-#define _CRT_SECURE_NO_WARNINGS
 
 static wchar_t* g_items[MAX_ITEMS];
 static int      g_count = 0;
@@ -27,7 +27,6 @@ const wchar_t* items_get(int i) {
 
 void items_add(const wchar_t* path) {
     if (!path || g_count >= MAX_ITEMS) return;
-    // dedupe
     for (int i = 0; i < g_count; ++i)
         if (_wcsicmp(g_items[i], path) == 0) return;
 
@@ -47,10 +46,10 @@ void items_remove(int i) {
 
 void items_load(void) {
     items_clear();
-    FILE *f = _wfopen(util_data_file(), L"r, ccs=UTF-8");
+    FILE* f = _wfopen(util_data_file(), L"r, ccs=UTF-8");
     if (!f) return;
-    wchar_t line[MAX_PATH * 2];
-    while (fgetws(line, MAX_PATH * 2, f)) {
+    static wchar_t line[32768];
+    while (fgetws(line, 32768, f)) {
         size_t n = wcslen(line);
         while (n && (line[n-1] == L'\n' || line[n-1] == L'\r')) line[--n] = 0;
         if (n) items_add(line);

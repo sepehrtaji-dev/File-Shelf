@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <shellapi.h>
+#include <objbase.h>
 #include "shelf_window.h"
 #include "shelf_items.h"
 #include "util.h"
@@ -51,6 +52,7 @@ void tray_menu_public(HWND hwnd) {
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, PWSTR cmd, int show) {
     (void)hPrev; (void)cmd;
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    OleInitialize(NULL);
 
     util_init_paths();
     items_init();
@@ -78,5 +80,6 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrev, PWSTR cmd, int show) {
     tray_remove();
     items_save();
     ui_shutdown();
+    OleUninitialize();
     return 0;
 }
