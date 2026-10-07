@@ -1,0 +1,4 @@
+#include <windows.h>
+
+1 ICON "shelf.ico"
+1 RT_MANIFEST "manifest.xml"

@@ -1,0 +1,1 @@
+/* drag_out.c — placeholder */
