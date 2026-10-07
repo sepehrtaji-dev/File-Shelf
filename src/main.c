@@ -43,9 +43,17 @@ void tray_menu_public(HWND hwnd) {
     DestroyMenu(m);
 
     switch (cmd) {
-    case 1: shelf_on_hotkey(hwnd); break;
-    case 2: items_clear(); items_save(); InvalidateRect(hwnd, NULL, TRUE); break;
-    case 3: DestroyWindow(hwnd); break;
+    case 1:
+        shelf_on_hotkey(hwnd);
+        break;
+    case 2:
+        items_clear();
+        items_save();
+        PostMessageW(hwnd, WM_SHELF_REFRESH, 0, 0);
+        break;
+    case 3:
+        DestroyWindow(hwnd);
+        break;
     }
 }
 

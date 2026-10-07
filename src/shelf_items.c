@@ -42,6 +42,7 @@ void items_remove(int i) {
     free(g_items[i]);
     for (int j = i; j < g_count - 1; ++j) g_items[j] = g_items[j + 1];
     g_count--;
+    g_items[g_count] = NULL;
 }
 
 void items_load(void) {

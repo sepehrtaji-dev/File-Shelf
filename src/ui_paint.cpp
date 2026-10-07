@@ -61,6 +61,7 @@ static void parent_of(const wchar_t* path, wchar_t* out, size_t n) {
 extern "C" void ui_paint(HWND hwnd) {
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd, &ps);
+    if (!hdc) { EndPaint(hwnd, &ps); return; }
 
     RECT rc;
     GetClientRect(hwnd, &rc);
@@ -70,11 +71,9 @@ extern "C" void ui_paint(HWND hwnd) {
     g.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
     g.SetTextRenderingHint(Gdiplus::TextRenderingHintClearTypeGridFit);
 
-    // ---- 1px highlight border ------------------------------------------
     Gdiplus::Pen border{ Gdiplus::Color(0xFF, 0x60, 0x60, 0x70), 1.0f };
     g.DrawRectangle(&border, 0, 0, W - 1, H - 1);
 
-    // ---- hide button ----------------------------------------------------
     RECT hb = shelf_hide_button_rect(rc);
     Gdiplus::RectF hbf((Gdiplus::REAL)hb.left, (Gdiplus::REAL)hb.top,
                        (Gdiplus::REAL)(hb.right - hb.left),
@@ -96,7 +95,6 @@ extern "C" void ui_paint(HWND hwnd) {
                           (INT)(hbf.GetRight() - 6), (INT)(cy + 2));
     }
 
-    // ---- rows -----------------------------------------------------------
     int n = items_count();
     for (int i = 0; i < n; ++i) {
         RECT rr = shelf_row_rect(rc, i);

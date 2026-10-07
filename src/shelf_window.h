@@ -1,6 +1,8 @@
 #pragma once
 #include <windows.h>
 
+#define WM_SHELF_REFRESH (WM_APP + 2)
+
 #ifdef __cplusplus
 extern "C" {
 #endif

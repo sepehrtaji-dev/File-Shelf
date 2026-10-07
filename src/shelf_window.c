@@ -48,7 +48,41 @@ static BOOL hit_hide(HWND hwnd, POINT pt) {
 
 static void redraw(HWND hwnd) {
     InvalidateRect(hwnd, NULL, FALSE);
-    UpdateWindow(hwnd);
+}
+
+/* Resize the window height to fit the current item count exactly.
+   We derive the needed height by asking shelf_layout for the bottom
+   of the last row (or just the hide-button area when empty), so we
+   never hard-code a row height here. */
+static void shelf_fit_height(HWND hwnd) {
+    /* Build a dummy RECT wide enough that shelf_row_rect gives real values. */
+    RECT wrc; GetWindowRect(hwnd, &wrc);
+    int W = wrc.right - wrc.left;
+
+    RECT dummy = { 0, 0, W, 4096 };
+
+    int n = items_count();
+    int new_h;
+    if (n > 0) {
+        /* Bottom of the last row = new client height */
+        RECT last = shelf_row_rect(dummy, n - 1);
+        /* Add the same bottom padding that shelf_layout uses.
+           shelf_hide_button_rect sits above row 0; measure its top
+           to know the top margin, then mirror it at the bottom. */
+        RECT hb = shelf_hide_button_rect(dummy);
+        int top_pad = hb.top;           /* padding above hide button  */
+        new_h = last.bottom + top_pad + 4;  /* small extra bottom padding */  /* mirror it at the bottom    */
+    } else {
+        /* No items: just fit the hide button + equal padding */
+        RECT hb = shelf_hide_button_rect(dummy);
+        new_h = hb.bottom + hb.top;
+    }
+
+    /* Keep X/Y, only change height; SWP_NOACTIVATE avoids focus stealing. */
+    SetWindowPos(hwnd, NULL,
+                 wrc.left, wrc.top,
+                 W, new_h,
+                 SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 static void update_hover(HWND hwnd, POINT pt) {
@@ -80,6 +114,11 @@ static LRESULT CALLBACK shelf_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_ERASEBKGND:
         return 1;
 
+    case WM_SHELF_REFRESH:
+        shelf_fit_height(hwnd);
+        redraw(hwnd);
+        return 0;
+
     case WM_NCHITTEST: {
         POINT pt = { GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
         ScreenToClient(hwnd, &pt);
@@ -107,7 +146,7 @@ static LRESULT CALLBACK shelf_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             if (dx * dx + dy * dy > 9) {
                 g_dragging = TRUE;
                 g_down_valid = FALSE;
-                ReleaseCapture();
+                if (GetCapture() == hwnd) ReleaseCapture();
                 drag_out_start(hwnd, DROPEFFECT_COPY | DROPEFFECT_MOVE | DROPEFFECT_LINK);
                 return 0;
             }
@@ -142,6 +181,8 @@ static LRESULT CALLBACK shelf_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             items_save();
             g_hover = -1; g_close_hover = -1;
             ui_set_hover(-1, -1, g_hide_hover);
+            /* Shrink the window to match the new row count, then repaint. */
+            shelf_fit_height(hwnd);
             redraw(hwnd);
             return 0;
         }
@@ -155,7 +196,7 @@ static LRESULT CALLBACK shelf_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
     case WM_LBUTTONUP:
         if (g_down_valid) {
-            ReleaseCapture();
+            if (GetCapture() == hwnd) ReleaseCapture();
             g_down_valid = FALSE;
         }
         return 0;
@@ -163,7 +204,7 @@ static LRESULT CALLBACK shelf_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_LBUTTONDBLCLK: {
         g_down_valid = FALSE;
         g_dragging = FALSE;
-        ReleaseCapture();
+        if (GetCapture() == hwnd) ReleaseCapture();
 
         POINT pt = { GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
         BOOL on_close = FALSE;
@@ -182,6 +223,7 @@ static LRESULT CALLBACK shelf_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_DROPFILES:
         drop_in_handle((HDROP)wp);
         items_save();
+        shelf_fit_height(hwnd);
         redraw(hwnd);
         return 0;
 
@@ -215,12 +257,14 @@ BOOL shelf_register_class(HINSTANCE hInst) {
 }
 
 HWND shelf_create(HINSTANCE hInst, int nCmdShow) {
+    // Instead of CW_USEDEFAULT for position, pin it a few pixels from the right edge
+    int screenW = GetSystemMetrics(SM_CXSCREEN);
     HWND hwnd = CreateWindowExW(
-        WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_ACCEPTFILES | WS_EX_COMPOSITED,
+        WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_ACCEPTFILES,
         SHELF_CLASS, L"Shelf",
         WS_POPUP | WS_CLIPCHILDREN,
-        CW_USEDEFAULT, CW_USEDEFAULT, 320, 420,
-        NULL, NULL, hInst, NULL);
+        screenW - 330, 100, 320, 420,   // right-pinned with 10px gap
+        NULL, NULL, hInst, NULL);;
 
     if (!hwnd) return NULL;
     ShowWindow(hwnd, nCmdShow);
@@ -230,5 +274,5 @@ HWND shelf_create(HINSTANCE hInst, int nCmdShow) {
 
 void shelf_on_hotkey(HWND hwnd) {
     if (IsWindowVisible(hwnd)) ShowWindow(hwnd, SW_HIDE);
-    else { ShowWindow(hwnd, SW_SHOW); SetForegroundWindow(hwnd); redraw(hwnd); }
+    else { ShowWindow(hwnd, SW_SHOW); SetForegroundWindow(hwnd); shelf_fit_height(hwnd); redraw(hwnd); }
 }
